@@ -1,0 +1,9 @@
+venv
+__pycache__
+*.pyc
+.DS_Store
+*.mp4
+*.session
+README.md
+.git
+.env

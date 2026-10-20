@@ -1,0 +1,327 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="stylesheet" href="styles.css">
+    <title>Rock Botm - Download YouTube Videos</title>
+</head>
+
+<body>
+    <div class="app-container video-download-container">
+        <div class="header">
+            <img src="./assets/rock_botm_logo_main.svg" alt="Rock Botm | Download YouTube Videos" class="header-logo">
+            <p class="info-para">The project Rock Botm YT is the YouTube videos downloader. You can download the videos
+                with no limits and without any ads.</p>
+        </div>
+
+        <div class="input-ctr">
+            <input type="url" id="reelUrl" class="url-input" placeholder="Paste the YouTube video URL" required>
+            <button class="s-btn"><img src="./assets/search.svg" alt="Search"></button>
+        </div>
+
+        <!-- Output Container -->
+        <div class="output-ctr">
+            <!-- Loading state - Hidden by default -->
+            <div class="skeleton-loader">
+                <div class="video-thumbnail-ctr">
+                    <div class="skeleton-box thumbnail"></div>
+                </div>
+                <div class="video-info-ctr">
+                    <div class="basic-info">
+                        <div class="skeleton-line author"></div>
+                        <div class="skeleton-line title"></div>
+                        <div class="stats-ctr">
+                            <div class="skeleton-line stat"></div>
+                            <div class="skeleton-line stat"></div>
+                        </div>
+                    </div>
+                </div>
+                <div>
+                    <div class="skeleton-btn"></div>
+                </div>
+            </div>
+
+            <!-- Actual content - Hidden by default -->
+            <div class="content">
+                <div class="video-thumbnail-ctr">
+                    <img src="" alt="Video thumbnail" class="video-thumbnail">
+                </div>
+                <div class="video-info-ctr">
+                    <div class="basic-info">
+                        <p class="author"></p>
+                        <p class="title"></p>
+                        <div class="stats-ctr">
+                            <p class="likes"><img src="./assets/heart.svg" alt="Likes"></p>
+                            <p class="comments"><img src="./assets/comment.svg" alt="Comments"></p>
+                        </div>
+                    </div>
+                </div>
+                <div>
+                    <button class="d-btn">Download <img src="./assets/download.svg" alt=""></button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+    // Configuration
+    const API_BASE_URL = '';  // Empty because same origin
+    
+    // DOM Elements
+    const urlInput = document.getElementById('reelUrl');
+    const searchBtn = document.querySelector('.s-btn');
+    const skeletonLoader = document.querySelector('.skeleton-loader');
+    const contentContainer = document.querySelector('.content');
+    
+    // Hide both initially (content is hidden by default, but ensure skeleton is hidden too)
+    if (skeletonLoader) skeletonLoader.style.display = 'none';
+    if (contentContainer) contentContainer.style.display = 'none';
+    
+    // Function to show loading state
+    function showLoading() {
+        // Hide content if visible
+        if (contentContainer) contentContainer.style.display = 'none';
+        
+        // Show skeleton
+        if (skeletonLoader) {
+            skeletonLoader.style.display = 'block';
+        }
+    }
+    
+    // Function to hide loading state
+    function hideLoading() {
+        if (skeletonLoader) skeletonLoader.style.display = 'none';
+    }
+    
+    // Function to format numbers (e.g., 274905 -> 274.9K)
+    function formatNumber(num) {
+        if (num >= 1000000) {
+            return (num / 1000000).toFixed(1) + 'M';
+        }
+        if (num >= 1000) {
+            return (num / 1000).toFixed(1) + 'K';
+        }
+        return num.toString();
+    }
+    
+    // Function to display video information (SINGLE VERSION)
+    function displayVideoInfo(data) {
+        // Hide skeleton
+        hideLoading();
+        
+        if (!contentContainer) {
+            console.error('Content container not found');
+            return;
+        }
+        
+        // Get all the elements inside content container
+        const thumbnail = contentContainer.querySelector('.video-thumbnail');
+        const author = contentContainer.querySelector('.author');
+        const title = contentContainer.querySelector('.title');
+        const likes = contentContainer.querySelector('.likes');
+        const comments = contentContainer.querySelector('.comments');
+        const downloadBtn = contentContainer.querySelector('.d-btn');
+        
+        // Set values - USE PROXY FOR THUMBNAIL
+        if (thumbnail) {
+            // Remove any existing error class
+            thumbnail.classList.remove('error');
+            
+            // Use proxy endpoint for thumbnail
+            const proxyUrl = `${API_BASE_URL}/api/thumbnail?url=${encodeURIComponent(data.thumbnail_url)}`;
+            thumbnail.src = proxyUrl;
+            thumbnail.alt = `Reel by ${data.owner_username}`;
+            
+            // Add load event to ensure it shows properly
+            thumbnail.onload = function() {
+                this.style.display = 'block';
+            };
+            
+            // Add error handler for thumbnail
+            thumbnail.onerror = function() {
+                console.log('Thumbnail failed to load via proxy');
+                this.classList.add('error');
+                // Optional: set a placeholder or hide
+                this.style.display = 'none';
+                
+                // You could also show a placeholder div
+                const container = this.closest('.video-thumbnail-ctr');
+                if (container && !container.querySelector('.thumbnail-placeholder')) {
+                    const placeholder = document.createElement('div');
+                    placeholder.className = 'thumbnail-placeholder';
+                    placeholder.innerHTML = '🖼️ Thumbnail unavailable';
+                    container.appendChild(placeholder);
+                }
+            };
+        }
+        
+        if (author) author.textContent = `@${data.owner_username}`;
+        
+        if (title) {
+            title.textContent = data.caption ? 
+                (data.caption.length > 100 ? data.caption.substring(0, 100) + '...' : data.caption) : 
+                'No caption';
+        }
+        
+        if (likes) {
+            const heartIcon = likes.querySelector('img');
+            likes.innerHTML = '';
+            if (heartIcon) likes.appendChild(heartIcon);
+            likes.appendChild(document.createTextNode(` ${formatNumber(data.likes)}`));
+        }
+        
+        if (comments) {
+            const commentIcon = comments.querySelector('img');
+            comments.innerHTML = '';
+            if (commentIcon) comments.appendChild(commentIcon);
+            comments.appendChild(document.createTextNode(` ${formatNumber(data.comments)}`));
+        }
+        
+        // Set up download button
+        if (downloadBtn) {
+            downloadBtn.onclick = (e) => {
+                e.preventDefault();
+                downloadVideo(data, downloadBtn);
+            };
+        }
+        
+        // Show the content
+        contentContainer.style.display = 'block';
+    }
+    
+    // Function to download video (saves the file instead of opening a new tab)
+    async function downloadVideo(data, btn) {
+        // Instagram's CDN is cross-origin, so the browser ignores the "download"
+        // attribute and just plays the video. Fetch it through our own backend
+        // (which sends the file as an attachment) and save it as a blob instead.
+        const reelUrl = `https://www.youtube.com/watch?v=${data.shortcode}`;
+
+        if (btn) {
+            btn.disabled = true;
+            btn.style.opacity = '0.6';
+            btn.style.cursor = 'wait';
+        }
+
+        try {
+            const response = await fetch(`${API_BASE_URL}/api/download?url=${encodeURIComponent(reelUrl)}`);
+
+            if (!response.ok) {
+                let message = 'Could not download the video';
+                try {
+                    const err = await response.json();
+                    if (err && err.error) message = err.error;
+                } catch (_) {}
+                throw new Error(message);
+            }
+
+            const blob = await response.blob();
+            const blobUrl = URL.createObjectURL(blob);
+
+            const a = document.createElement('a');
+            a.href = blobUrl;
+            a.download = `youtube_${data.shortcode}_${Date.now()}.mp4`;
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+
+            setTimeout(() => URL.revokeObjectURL(blobUrl), 10000);
+        } catch (error) {
+            console.error('Download error:', error);
+            alert(`Error: ${error.message}`);
+        } finally {
+            if (btn) {
+                btn.disabled = false;
+                btn.style.opacity = '';
+                btn.style.cursor = '';
+            }
+        }
+    }
+    
+    // Function to fetch reel info from API
+    async function fetchReelInfo(reelUrl) {
+        showLoading();
+        
+        try {
+            const response = await fetch(`${API_BASE_URL}/api/info?url=${encodeURIComponent(reelUrl)}`);
+            const data = await response.json();
+            
+            if (data.success) {
+                displayVideoInfo(data);
+            } else {
+                hideLoading();
+                alert(`Error: ${data.error || 'Could not fetch reel information'}`);
+            }
+        } catch (error) {
+            hideLoading();
+            console.error('Error:', error);
+            alert('Error connecting to the server. Make sure the backend is running on port 5000.');
+        }
+    }
+    
+    // Function to handle new search from this page
+    function handleNewSearch() {
+        const url = urlInput.value.trim();
+        
+        if (!url) {
+            alert('Please enter an Instagram Reel URL');
+            return;
+        }
+        
+        // if (!url.includes('instagram.com/') || (!url.includes('/reel/') && !url.includes('/reels/'))) {
+        //     alert('Please enter a valid Instagram Reel URL');
+        //     return;
+        // }
+        
+        // Update URL parameter without page reload
+        const newUrl = new URL(window.location);
+        newUrl.searchParams.set('url', url);
+        window.history.pushState({}, '', newUrl);
+        
+        // Fetch and display new reel
+        fetchReelInfo(url);
+    }
+    
+    // Initialize page - check for URL parameter
+    window.addEventListener('load', () => {
+        const urlParams = new URLSearchParams(window.location.search);
+        const reelUrl = urlParams.get('url');
+        
+        if (reelUrl) {
+            urlInput.value = decodeURIComponent(reelUrl);
+            fetchReelInfo(reelUrl);
+        }
+    });
+    
+    // Event Listeners
+    if (searchBtn) {
+        searchBtn.addEventListener('click', handleNewSearch);
+    }
+    
+    if (urlInput) {
+        urlInput.addEventListener('keypress', (e) => {
+            if (e.key === 'Enter') {
+                handleNewSearch();
+            }
+        });
+    }
+    
+    // Handle browser back/forward buttons
+    window.addEventListener('popstate', () => {
+        const urlParams = new URLSearchParams(window.location.search);
+        const reelUrl = urlParams.get('url');
+        
+        if (reelUrl) {
+            urlInput.value = decodeURIComponent(reelUrl);
+            fetchReelInfo(reelUrl);
+        } else {
+            // Clear the display if no URL parameter
+            if (contentContainer) contentContainer.style.display = 'none';
+            hideLoading();
+        }
+    });
+</script>
+</body>
+
+</html>

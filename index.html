@@ -1,0 +1,67 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="stylesheet" href="styles.css">
+    <title>Project Rock Botm - Instagram Reel Downloader</title>
+</head>
+<body>
+    <div class="app-container">
+        <img src="./assets/rock_botm_logo_main.svg" alt="Rock Botm | Instagram Reel Downloader" class="logo">
+        
+        <input type="url" id="reelUrl" class="url-input" placeholder="Paste YouTube video URL" required>
+        
+        <button id="search-btn" class="search-btn">Search</button>
+
+        <p class="some-txt-ctr">The <b>Project Rock Botm</b> is the YouTube videos downloader. You can download the videos with no limits and without any ads.</p>
+        
+        <!-- <div class="loading" id="loading">Processing... ⏳</div> -->
+        
+        <div class="result" id="result">
+            
+        </div>
+    </div>
+
+    <script>
+    // Configuration
+    const API_BASE_URL = '';  // Empty because same origin
+    
+    // DOM Elements
+    const urlInput = document.getElementById('reelUrl');
+    const searchBtn = document.getElementById('search-btn');
+    
+    // Function to validate and process URL
+    function processReelUrl() {
+        const url = urlInput.value.trim();
+        
+        if (!url) {
+            alert('Please enter an Instagram Reel URL');
+            return;
+        }
+        
+        // Validate Instagram URL
+        // if (!url.includes('instagram.com/') || (!url.includes('/reel/') && !url.includes('/reels/'))) {
+        //     alert('Please enter a valid Instagram Reel URL');
+        //     return;
+        // }
+        
+        // Redirect to video download page with the URL as parameter
+        window.location.href = `/download?url=${encodeURIComponent(url)}`;
+    }
+    
+    // Event Listeners
+    if (searchBtn) {
+        searchBtn.addEventListener('click', processReelUrl);
+    }
+    
+    if (urlInput) {
+        urlInput.addEventListener('keypress', (e) => {
+            if (e.key === 'Enter') {
+                processReelUrl();
+            }
+        });
+    }
+</script>
+</body>
+</html>
